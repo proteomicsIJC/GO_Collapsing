@@ -158,6 +158,10 @@ soup1 <- minestrone(collapsed_list = collapsed1, original_data = gobp1)
 # Do the trick and add a size column to the soup dataframe
 soup1$size <- 1
 
+# You can also make size proportional to the Count of each functional term
+x <- soup1$child
+soup1$size <- gobp1$Count[match(x, gobp1$Description)]
+
 # Plot
 pdf("./plots/tree1.pdf", width = 10, height = 10, bg = NULL )
 treemaping(soup = soup1, graph_title = "GO:BP collapse cluster 1")
