@@ -1,0 +1,2 @@
+# Functional annotation and functional annotation collapse
+Workflows for the curated functional annotation of proteomic datasets, here we also include methods for the collaping/nesting of functionallities based on the expressed proteins/genes of every particular dataset. In order to work with approach, download the full repo. 
