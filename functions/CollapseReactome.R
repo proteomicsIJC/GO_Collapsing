@@ -7,8 +7,10 @@
 ## genes = gene symbols (entrez or whatever) entered to extract the paths to collapse 
 ## mingsize = minimum genesize to take i count (putting the same as in the first versio shall be good)
 ## ontology to work with = BP,CC,MF
+## max_pval_to_collapse = max pvalue to consider when collapsing
 
-CollapseReactome <- function(functional_annot, pathways, genes, mingsize, organism = "human"){
+CollapseReactome <- function(functional_annot, pathways, genes, mingsize, organism = "human",
+                             max_pval_to_collapse = 0.05){
   ## filter enrichment result
   functional_annot <- functional_annot %>% 
     dplyr::filter(p.adjust < 0.05) %>%
@@ -64,7 +66,7 @@ CollapseReactome <- function(functional_annot, pathways, genes, mingsize, organi
     # get the uncommon values from minPval
     uncommon_minPval <- minPval[uncommon_names]
     minPval <- c(uncommon_minPval,min_of_common)
-    parentPaths[names(which(minPval < 0.05))] <- p
+    parentPaths[names(which(minPval < max_pval_to_collapse))] <- p
     
   }
   return(list(mainPaths = names(which(is.na(parentPaths))),
