@@ -28,6 +28,7 @@ collapseGO <- function(functional_annot, pathways, genes, mingsize, ontology_to_
   
   ## start looping
   for (i in 1:length(pathways)) {
+    cat(paste0("Collapsing pathway ",i,"/",length(pathways),"\r"))
     ## set the path to check if is parent
     p <- names(pathways)[i]
     if (!is.na(parentPaths[p])) {
@@ -39,31 +40,6 @@ collapseGO <- function(functional_annot, pathways, genes, mingsize, ontology_to_
     
     ## Initialize the minPval vector
     minPval <- setNames(rep(1, length(paths_to_check)), paths_to_check)
-    
-    ## Inverted universe (u1)
-    #u1 <- setdiff(universe, pathways[[p]])
-    
-    #gobp_u1 <- enrichGO(gene = u1, universe = genes,
-    #                    OrgDb = "org.Hs.eg.db", ont = "BP", keyType = "SYMBOL",
-    #                    pvalueCutoff = 0.05, qvalueCutoff = 0.01, minGSSize = 1)
-    #gobp_u1 <- gobp_u1@result
-    
-    # subset the pvalues
-    #gobp_u1_pval <- gobp_u1$pvalue
-    #names(gobp_u1_pval) <- gobp_u1$ID
-    #gobp_u1_pval <- gobp_u1_pval[names(gobp_u1_pval) %in% paths_to_check]
-    
-    ## minPval new
-    # common names
-    #common_minPval <- intersect(names(gobp_u1_pval), names(minPval))
-    # minimum of common names
-    #min_of_common <- pmin(gobp_u1_pval[common_minPval], minPval[common_minPval])
-    # find uncommon names
-    #uncommon_names <- setdiff(names(minPval), names(gobp_u1_pval))
-    # get the uncommon values from minPval
-    #uncommon_minPval <- minPval[uncommon_names]
-    
-    #minPval <- c(uncommon_minPval,min_of_common)
     
     ## Our universe (u2)
     u2 <- pathways[[p]]
