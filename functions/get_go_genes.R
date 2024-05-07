@@ -10,13 +10,15 @@
 ## assigned_by = character vector of labs that have assigned the gene/protein to the path.
 ## geneProductSubset = character vector of the Uniprot version to use reviewed (Swiss-Prot) and/or unreviewed (TrEMBL).
 ## taxon = character vector of taxon ids to retrive information from.
+## taxon_usage = character vector for the taxon usage, it can be exact or descendants
 ## evidence_to_remove = character vector of those evidences which must NOT be retrieved from the API.
 
 get_genes <- function(go_id, go_usage = "exact", 
                       proteome, 
                       assigned_by = "UniProt",
                       geneProductSubset = "Swiss-Prot",
-                      taxon,evidences_to_remove =  c("ECO:0000245","ECO:0000307","ECO:0000501")){
+                      taxon, taxon_usage = "exact",
+                      evidences_to_remove =  c("ECO:0000245","ECO:0000307","ECO:0000501")){
   ## GO_list
   final_list <- list()
   
@@ -91,7 +93,9 @@ get_genes <- function(go_id, go_usage = "exact",
     unique_taxon <- paste0("taxonId=",unique_taxon)
     
     ### Taxon Usage
-    unique_taxon_usage <- "taxonUsage=exact"
+    unique_taxon_usage <- taxon_usage
+    unique_taxon_usage <- paste0("taxonUsagee=",unique_taxon_usage)
+    
     
     ### Evidences
     evidences <- gsub(pattern = "\\:", replacement = "%3A", x = evidences)
