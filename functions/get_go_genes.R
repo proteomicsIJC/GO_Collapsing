@@ -13,7 +13,7 @@
 ## taxon_usage = character vector for the taxon usage, it can be exact or descendants
 ## evidence_to_remove = character vector of those evidences which must NOT be retrieved from the API.
 
-get_genes <- function(go_id, go_usage = "exact", 
+get_go_genes <- function(go_id, go_usage = "exact", 
                       proteome, 
                       assigned_by = "UniProt",
                       geneProductSubset = "Swiss-Prot",
@@ -71,7 +71,10 @@ get_genes <- function(go_id, go_usage = "exact",
     unique_assigned_by <- paste0("assignedBy=",unique_assigned_by)
     
     ### Select fields
-    unique_select_fields <-"selectedFields=geneProductId&selectedFields=symbol&selectedFields=qualifier&selectedFields=goId&selectedFields=goAspect&selectedFields=evidenceCode&selectedFields=goEvidence&selectedFields=taxonId&selectedFields=assignedBy&selectedFields=synonyms&selectedFields=name&selectedFields=type"
+    unique_select_fields <-"selectedFields=geneProductId&selectedFields=symbol&selectedFields=qualifier&selectedFields=goId&selectedFields=goAspect&selectedFields=evidenceCode&selectedFields=goEvidence&selectedFields=taxonId&selectedFields=assignedBy&selectedFields=synonyms&selectedFields=name&selectedFields=type&selectedFields=goName"
+    
+    ###Include fields
+    unique_include_fields <- "includeFields=goName"
     
     ### Gene product type
     unique_geneProductType <- "geneProductType=protein"
@@ -108,14 +111,14 @@ get_genes <- function(go_id, go_usage = "exact",
     ## Generate the URL
     variable_part <- paste(unique_proteomes,unique_assigned_by,unique_select_fields,unique_geneProductType,
                            unique_geneProductSubset,unique_goid,unique_go_usage,unique_taxon,unique_taxon_usage,
-                           unique_evidence,unique_evidence_usage,sep = "&")
+                           unique_evidence,unique_evidence_usage,unique_include_fields,sep = "&")
     
     url <- paste(base_url,variable_part,sep = "")
     
     ## Do the API petition
     response <- httr::GET(url = url, accept("text/tsv"))
     stop_for_status(response)
-    content <- content(response,as = "text")
+    content <- httr::content(response, as = "text")
     
     ## Transform the character vector into a dataframe
     lines <- strsplit(content,"\n")[[1]]
