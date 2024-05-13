@@ -33,11 +33,11 @@ get_childs <- function(go_id){
   
   ## Trasnform the list into a dataset
   final_dataframe <- final_children_list %>%
-    map_dfr(~ {
+    purrr::map_dfr(~ {
       parent_id <- .x$id
       parent_name <- .x$name
       children <- .x$children %>%
-        map_dfr(~ as.data.frame(t(unlist(.x)), stringsAsFactors = FALSE))
+        purrr::map_dfr(~ as.data.frame(t(unlist(.x)), stringsAsFactors = FALSE))
       children$parent_id <- parent_id
       children$parent_name <- parent_name
       children
