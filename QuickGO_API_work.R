@@ -5,19 +5,21 @@
 ### Load libraries and data
 ## Libraries
 library(rstudioapi)
+library(tidyverse)
 setwd(dirname(getActiveDocumentContext()$path))
 library(httr)
 library(jsonlite)
 library(xml2)
 
 ## Functions
-source("./functions/get_go_genes.R")
 source("./functions/get_child_terms.R")
+source("./functions/get_go_genes.R")
 
 ## Data
 # Data could also be simply a string vector of GO terms to extract info from 
 GOs <- openxlsx::read.xlsx("./skeletal_muscle.xlsx")
 
+### GOs_childs <- get_childs(go_id = "GO:0098723") 
 
 skeletal_proteins <- get_go_genes(go_id = GOs$Term, 
                                go_usage = "descendants", proteome = "gcrpCan", assigned_by = c("Uniprot","InterPro","GO_Central","BHF-UCL"), 
