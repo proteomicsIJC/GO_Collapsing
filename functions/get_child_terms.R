@@ -7,37 +7,72 @@
 get_childs <- function(go_id){
   ##### CHILDREN
   base_url <- "https://www.ebi.ac.uk/QuickGO/services/ontology/go/terms/"
+  ##go_id <- c("GO:0048308","GO:0048313") ## <- Prova 1 funciona ! Tots tenen childs
+  ##go_id <- c("GO:0048308","GO:0048313","GO:1990730","GO:0036504","GO:1990484") ## <- Prova funciona !  2 no tenen childs
+  ##go_id = c("GO:1990730") ## Prova <- funciona ! no té fills i no torna res
   child_list <- list()
-  for (i in 1:length(go_id)){
+  ## set a counter and a counter maximum to extract the data
+  counter_limit <- length(go_id)
+  counter <- 1
+  for (i in 1:counter_limit){
     url <- paste0(base_url,go_id[i],"/children")
     response <- httr::GET(url = url)
     if (httr::http_type(response) == "application/json") {
-      if (i == 1){
-        children <- httr::content(response, "parsed")
-        children <- children[["results"]]
-        names(children) <- children[[1]]$name
-        child_list <- children}
-      else {
-        children <- httr::content(response,"parsed")
-        children <- children[["results"]]
-        names(children) <- children[[1]]$name
-        child_list <- list(child_list, children)}
+      children <- httr::content(response, "parsed")
+      children <- children[["results"]]
+      names(children) <- children[[1]]$name
+      child_list <- c(child_list, list(children))
+      counter <- counter +1
+      ###      if (i == 1){
+      ###       children <- httr::content(response, "parsed")
+      ###       children <- children[["results"]]
+      ###       names(children) <- children[[1]]$name
+      ###       child_list <- children}
+      ###      else {
+      ###       children <- httr::content(response,"parsed")
+      ###       children <- children[["results"]]
+      ###       names(children) <- children[[1]]$name
+      ###       child_list <- list(child_list, children)}
     }}
   ## Clean children list
-  final_children_list <- list()
-  for (j in 1:length(child_list)){
-    final_children_list[[j]] <- child_list[[j]][[1]]
-    names(final_children_list)[j] <- final_children_list[[j]]$name
+  ## Check that any element has at least one child
+  ## Define a function to it
+  search_children <- function(lst) {
+    for (sub_lst in lst) {
+      if (is.list(sub_lst)) {
+        # If the element is a list, recursively search it
+        if ("children" %in% names(sub_lst)) {
+          return(TRUE)  # Found "children", return TRUE
+        } else {
+          # Recursively search the sublist
+          found_children <- search_children(sub_lst)
+          if (found_children) {
+            return(TRUE)  # "children" found in the sublist, return TRUE
+          }
+        }
+      }
+    }
+    return(FALSE)  # "children" not found in any sublist, return FALSE
+  }  
+  has_children <- search_children(child_list)
+  if (has_children){
+    final_children_list <- list()
+    for (j in 1:length(child_list)){
+      final_children_list[[j]] <- child_list[[j]][[1]]
+      names(final_children_list)[j] <- final_children_list[[j]]$name}
+  } else {
+    stop("NO CHILDRENS !")
   }
+  
   final_children_list <- final_children_list
   
   ## Trasnform the list into a dataset
   final_dataframe <- final_children_list %>%
-    purrr::map_dfr(~ {
+    map_dfr(~ {
       parent_id <- .x$id
       parent_name <- .x$name
       children <- .x$children %>%
-        purrr::map_dfr(~ as.data.frame(t(unlist(.x)), stringsAsFactors = FALSE))
+        map_dfr(~ as.data.frame(t(unlist(.x)), stringsAsFactors = FALSE))
       children$parent_id <- parent_id
       children$parent_name <- parent_name
       children
@@ -45,6 +80,44 @@ get_childs <- function(go_id){
   final_dataframe <- final_dataframe %>% 
     relocate(parent_id,parent_name, .before = id)
   
+  ## Add the names of the IDs that are not in the list cuz no childs init
+  # Outersect function
+  outersect <- function(x, y) {
+    sort(c(setdiff(x, y),
+           setdiff(y, x)))}
+  # The ountersect
+  out <- outersect(x = go_id,
+                   y = intersect(go_id,final_dataframe$parent_id))
+  
+  # define the function to filter the list of results for the ones with no childs
+  filtered_list <- lapply(final_children_list, function(x) {
+    if (length(x) <= 2) {
+      return(x)
+    }
+  })
+  # filter the list
+  filtered_list <- filtered_list[!sapply(filtered_list, is.null)]
+  
+  ## Extract the info
+  if (length(filtered_list)>0){
+    out <- c()
+    for (nc in 1:length(filtered_list)){
+      n_ames <- filtered_list[[nc]]$name
+      go_ids <- filtered_list[[nc]]$id
+      out[nc] <- go_ids
+      names(out)[nc] <- n_ames
+    }
+    
+    to_add <- as.data.frame( 
+      tibble::tibble(
+        parent_id = out,
+        parent_name = names(out),
+        id = out,
+        name = rep("NO child data for this element", times = length(out)),
+        relation = rep("NO child data for this element", times = length(out)),
+        hasChildren = rep("NO child data for this element")))
+    final_dataframe <- rbind(final_dataframe, to_add)
+  }
   ##### ASPECT
   base_url <- "https://www.ebi.ac.uk/QuickGO/services/ontology/go/terms/"
   aspect_list <- list()
