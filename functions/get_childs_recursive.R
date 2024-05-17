@@ -172,6 +172,7 @@ get_childs_recursive <- function(childs_data) {
   } else {
     ## Define an initial list of dataframes that we will append recursively 
     recursive_list <- list()
+    original_df$recursive_pass <- 1
     recursive_list[[1]] <- original_df
     original_rec <- recursive_list
     ## Define a condition that the last element will need to have
@@ -181,6 +182,9 @@ get_childs_recursive <- function(childs_data) {
       return(nrow(filtered_df) > 0)
     }
     
+    # Set the counter of recursive steps done
+    counter_of_recursive_steps <- 1
+
     ## The while loop on the condition for the last element of the list
     while (condition(tail(recursive_list, n=1)[[1]])) {
       # Extract the last element of the list
@@ -190,10 +194,12 @@ get_childs_recursive <- function(childs_data) {
         filter(hasChildren == "TRUE")
       recursives_goids <- recursives_goids$id
       print(recursives_goids)
-      
+      counter_of_recursive_steps <- counter_of_recursive_steps + 1 
       recursive_dataframe <- get_childs(go_id = recursives_goids)
+      # Add the counter of passes to the dataframes
+      recursive_dataframe$recursive_pass <- counter_of_recursive_steps
       recursive_list <- c(recursive_list, list(recursive_dataframe))
-      final_dataframe <- do.call(rbind,recursive_list) 
+      final_dataframe <- do.call(rbind,recursive_list)
     }
     
     final_data <- final_dataframe
