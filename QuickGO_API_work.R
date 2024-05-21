@@ -21,7 +21,6 @@ source("./functions/get_childs.R")
 source("./functions/get_childs_recursive.R")
 source("./functions/get_go_genes.R")
 
-
 ## Data
 # Data could also be simply a string vector of GO terms to extract info from 
 GOs_childs <- get_childs(go_id = c("GO:0015727","GO:0010714","GO:0015129")) 
@@ -50,6 +49,8 @@ GO_proteins_for_GO_childs_recursive <- get_go_genes(go_id = c(unique(GOs_childs_
                                           taxon_usage = "exact")
 
 ### Sankey plot for the passes
+## https://stackoverflow.com/questions/64146971/sankey-alluvial-diagram-with-percentage-and-partial-fill-in-r 
+## CODE FOR THE SANKEY PLOT
 ## Remove some data to work better, this might be eliminated
 GOs_childs_recursive2 <- GOs_childs_recursive %>% 
   subset(select = c(parent_name,
