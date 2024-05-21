@@ -24,8 +24,15 @@ source("./functions/get_go_genes.R")
 
 ## Data
 # Data could also be simply a string vector of GO terms to extract info from 
-GOs_childs <- get_childs(go_id = "GO:0015727") 
-GOs_childs_recursive <- get_childs_recursive(childs_data = GOs_childs)
+GOs_childs <- get_childs(go_id = c("GO:0015727","GO:0010714","GO:0015129")) 
+## GOs_childs <- get_childs(go_id = c("GO:0015727","GO:0010714")) 
+### Remove redundant requests where parents are
+### already cholds of another term in the search to get the best and cleaned search for genes !
+GOs_childs_recursive <- get_childs_recursive(childs_data = GOs_childs) 
+GOs_childs_recursive <- GOs_childs_recursive %>% 
+  group_by(across(c(-recursive_pass))) %>% 
+  slice(which.max(recursive_pass)) %>% 
+  ungroup()
 
 GO_proteins_for_GO_childs <- get_go_genes(go_id = c(unique(GOs_childs$parent_id,
                                                            GOs_childs$id)), 
@@ -43,35 +50,25 @@ GO_proteins_for_GO_childs_recursive <- get_go_genes(go_id = c(unique(GOs_childs_
                                           taxon_usage = "exact")
 
 ### Sankey plot for the passes
-last_pass <- max(GOs_childs_recursive$recursive_pass)
-GOs_childs_recursive <-  GOs_childs_recursive %>% 
-  mutate(next_pass = ifelse(last_pass == recursive_pass,
-                            NA,recursive_pass))
+## Remove some data to work better, this might be eliminated
+GOs_childs_recursive2 <- GOs_childs_recursive %>% 
+  subset(select = c(parent_name,
+                    name, recursive_pass))
 
-## Passes work
-# Transform it to words
-GOs_childs_recursive$recursive_pass <- as.character(ordinal(GOs_childs_recursive$recursive_pass))
-GOs_childs_recursive$next_pass <- as.character(ordinal(GOs_childs_recursive$next_pass))
+## Get the data of the trajectories that we will get to explain the extraction of paths
+GOs_childs_recursive_trajectories <- GOs_childs_recursive2 %>% 
+  group_by(name, parent_name) %>% 
+  slice(which.max(recursive_pass)) %>% 
+  ungroup() %>% 
+  filter(!name %in% parent_name) %>%
+  arrange((recursive_pass))
 
-# Passes as factor
-GOs_childs_recursive$recursive_pass <- as.factor(GOs_childs_recursive$recursive_pass)
-GOs_childs_recursive$next_pass <- as.factor(GOs_childs_recursive$next_pass)
+## Initialize the trajectory list
+trajectory_list <- list()
+for (i in 1:length(rownames(GOs_childs_recursive_trajectories))){
+  trajectory_list[[i]] <- as.data.frame(GOs_childs_recursive_trajectories[i,])
+}
 
-# Reorder of the levels
-GOs_childs_recursive$recursive_pass <- factor(GOs_childs_recursive$recursive_pass, levels = c("first","second","third"))
-GOs_childs_recursive$next_pass <- factor(GOs_childs_recursive$next_pass, levels = c("first","second","third"))
-
-## Plot the thing !
-pathways_connections <- ggplot(data = GOs_childs_recursive,
-                               aes(x = recursive_pass, 
-                                   next_x = next_pass, 
-                                   node = parent_id, 
-                                   next_node = parent_id,
-                                   fill = factor(parent_id)))+ 
-  geom_sankey(flow_alpha = 1,
-              node.color = "black",           
-              show.legend = TRUE)
-pathways_connections
 
 
 
