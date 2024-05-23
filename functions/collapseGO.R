@@ -16,6 +16,10 @@ collapseGO <- function(functional_annot, pathways, genes, mingsize, ontology_to_
     dplyr::filter(p.adjust < 0.05) %>%
     dplyr::arrange(pvalue) 
   
+  if (nrow(functional_annot) == 0){
+    stop("NO Terms to collapse")
+  } else {
+  
   ## set the universe
   universe <- genes
   
@@ -65,7 +69,7 @@ collapseGO <- function(functional_annot, pathways, genes, mingsize, ontology_to_
     minPval <- c(uncommon_minPval,min_of_common)
     parentPaths[names(which(minPval < max_pval_to_collapse))] <- p
     
-  }
+  }}
   return(list(mainPaths = names(which(is.na(parentPaths))),
               parent_paths = parentPaths))
 }
