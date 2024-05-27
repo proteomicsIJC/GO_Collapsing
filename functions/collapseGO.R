@@ -2,6 +2,8 @@
 ## CollapseGO ##
 ###############
 
+#### THIS IS A CHANGE TO CHECK GIT-HUB !!
+
 ## functional_annot = BP@results table
 ## pathways = BP@GeneSets
 ## genes = gene symbols (entrez or whatever) entered to extract the paths to collapse 
