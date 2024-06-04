@@ -5,20 +5,23 @@
 ## go_id = character vector of go_ids to get genes from.
 ## go_usage = get only genes annotated to the exact GO term/descendants or GO slim hierarchies.
 ## proteome = character vector of proteome reference to use: none, 
-### gcrpCan (Gene Centric Reference Proteome Canonical),
-### gcrpIso (Gene Centric Reference Proteome IsoForm).
+# gcrpCan (Gene Centric Reference Proteome Canonical),
+# gcrpIso (Gene Centric Reference Proteome IsoForm).
 ## assigned_by = character vector of labs that have assigned the gene/protein to the path.
 ## geneProductSubset = character vector of the Uniprot version to use reviewed (Swiss-Prot) and/or unreviewed (TrEMBL).
 ## taxon = character vector of taxon ids to retrive information from.
 ## taxon_usage = character vector for the taxon usage, it can be exact or descendants
 ## evidence_to_remove = character vector of those evidences which must NOT be retrieved from the API.
+## evidence usage = exact or descendant
+## to_curate = T or F. If T look only for "ECO:0000245","ECO:0000307","ECO:0000501" and you'll be able to remove the "bad" genes from annotation
 
 get_go_genes <- function(go_id, go_usage = "exact", 
                       proteome, 
                       assigned_by = "UniProt",
                       geneProductSubset = "Swiss-Prot",
                       taxon, taxon_usage = "exact",
-                      evidences_to_remove =  c("ECO:0000245","ECO:0000307","ECO:0000501")){
+                      evidences_to_remove =  c("ECO:0000245","ECO:0000307","ECO:0000501"), evidence_usage = "exact",
+                      to_curate = F){
   ## GO_list
   final_list <- list()
   
@@ -58,6 +61,10 @@ get_go_genes <- function(go_id, go_usage = "exact",
     filter(!Code %in% evidences_to_remove, .preserve = F)
   
   evidences <- evidences_data$Code
+  
+  if (to_curate){
+    evidences <- c("ECO:0000245","ECO:0000307","ECO:0000501")
+  }
   
   ##### GET THE GENES !
   base_url <- "https://www.ebi.ac.uk/QuickGO/services/annotation/downloadSearch?"
@@ -106,7 +113,8 @@ get_go_genes <- function(go_id, go_usage = "exact",
     unique_evidence <- paste0("evidenceCode=",unique_evidence)
     
     ## Evidences usage
-    unique_evidence_usage <- "evidenceCodeUsage=exact"
+    unique_evidence_usage <- evidence_usage
+    unique_evidence_usage <- paste0("evidenceCodeUsage=",unique_evidence_usage)
     
     ## Generate the URL
     variable_part <- paste(unique_proteomes,unique_assigned_by,unique_select_fields,unique_geneProductType,

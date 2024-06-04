@@ -24,29 +24,36 @@ source("./functions/get_go_genes.R")
 ## Data
 # Data could also be simply a string vector of GO terms to extract info from 
 GOs_childs <- get_childs(go_id = c("GO:0015727","GO:0010714","GO:0015129")) 
-## GOs_childs <- get_childs(go_id = c("GO:0015727","GO:0010714")) 
-### Remove redundant requests where parents are
-### already cholds of another term in the search to get the best and cleaned search for genes !
-GOs_childs_recursive <- get_childs_recursive(childs_data = GOs_childs) 
-GOs_childs_recursive <- GOs_childs_recursive %>% 
-  group_by(across(c(-recursive_pass))) %>% 
-  slice(which.max(recursive_pass)) %>% 
+GOs_childs <- get_childs(go_id = c("GO:0015727","GO:0010714")) 
+# Remove redundant requests where parents are
+# already childs of another term in the search to get the best and cleaned search for genes !
+GOs_childs_recursive <- get_childs_recursive(childs_data = GOs_childs)
+GOs_childs_recursive <- GOs_childs_recursive %>%
+  group_by(across(c(-recursive_pass))) %>%
+  slice(which.max(recursive_pass)) %>%
   ungroup()
 
-GO_proteins_for_GO_childs <- get_go_genes(go_id = c(unique(GOs_childs$parent_id,
-                                                           GOs_childs$id)), 
-                               go_usage = "exact", proteome = "gcrpCan", assigned_by = c("Uniprot","InterPro","GO_Central","BHF-UCL"), 
-                               geneProductSubset = "Swiss-Prot", 
-                               taxon = "9606", 
-                               taxon_usage = "exact")
+# Get the proteins 
+GO_proteins_for_GO_childs <- get_go_genes(go_id = c(GOs_childs$parent_id,
+                                                           GOs_childs$id), go_usage = "exact",
+                                          proteome = "gcrpCan", geneProductSubset = "Swiss-Prot",
+                                          assigned_by = c("Uniprot","Ensembl"),
+                                          taxon = "9606", taxon_usage = "exact", evidence_usage = "descendants",
+                                          evidences_to_remove = "",
+                                          to_curate = F)
+GO_proteins_for_GO_childs <- GO_proteins_for_GO_childs4 %>% 
+  distinct()
 
 
-GO_proteins_for_GO_childs_recursive <- get_go_genes(go_id = c(unique(GOs_childs_recursive$parent_id,
-                                                              GOs_childs_recursive$id)), 
+GO_proteins_for_GO_childs_recursive <- get_go_genes(go_id = c(GOs_childs_recursive$parent_id,
+                                                              GOs_childs_recursive$id), 
                                           go_usage = "exact", proteome = "gcrpCan", assigned_by = c("Uniprot","InterPro","GO_Central","BHF-UCL"), 
                                           geneProductSubset = "Swiss-Prot", 
                                           taxon = "9606", 
                                           taxon_usage = "exact")
+GO_proteins_for_GO_childs_recursive <- GO_proteins_for_GO_childs_recursive %>% 
+  distinct()
+
 
 ### Sankey plot for the passes
 ## https://stackoverflow.com/questions/64146971/sankey-alluvial-diagram-with-percentage-and-partial-fill-in-r 
