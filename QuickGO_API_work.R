@@ -21,63 +21,56 @@ source("./functions/get_childs.R")
 source("./functions/get_childs_recursive.R")
 source("./functions/get_go_genes.R")
 
-## Data
-# Data could also be simply a string vector of GO terms to extract info from 
-GOs_childs <- get_childs(go_id = c("GO:0015727","GO:0010714","GO:0015129")) 
-GOs_childs <- get_childs(go_id = c("GO:0015727","GO:0010714")) 
-# Remove redundant requests where parents are
-# already childs of another term in the search to get the best and cleaned search for genes !
+#### Get the GOs
+### Get the childs of GO:0005576 - (extracellular region)
+GOs_childs <- get_childs(go_id = c("GO:0005576")) 
+### Get the childs recursively
+## Remove redundant requests where parents are already childs of another term in the search to get the 
+# best and cleaned search for genes !
 GOs_childs_recursive <- get_childs_recursive(childs_data = GOs_childs)
+
+# GOs_childs_recursive_check <- GOs_childs_recursive %>%
+#   # Group by all cols except recursive pass
+#   arrange(across(c(-recursive_pass)))
+# look for symbiont-containing vacuolar membrane network to do the check
+
 GOs_childs_recursive <- GOs_childs_recursive %>%
+  # Group by all cols except recursive pass
   group_by(across(c(-recursive_pass))) %>%
-  slice(which.max(recursive_pass)) %>%
+  # If we have more than a path that is repeated, get the one w the biggest recursive pass
+  dplyr::slice(which.max(recursive_pass)) %>%
   ungroup()
+# filter the childs
+GOs_childs_recursive <- GOs_childs_recursive %>% 
+  # filter only cellular component
+  filter(aspect_parent == "cellular_component") %>% 
+  filter(aspect == "cellular_component")
+### NOW ALL RELATIONS ARE = part_of and is_a !
+unique(GOs_childs_recursive$relation)
 
-# Get the proteins 
-GO_proteins_for_GO_childs <- get_go_genes(go_id = c(GOs_childs$parent_id,
-                                                           GOs_childs$id), go_usage = "exact",
+#### Get the proteins
+### Proteins from GO:0005576 only (All but Reactome)
+## Proteins with IEA
+GO_proteins_for_extracell_NO_reactome_IEA <- get_go_genes(go_id = c("GO:0005576"), go_usage = "exact",
                                           proteome = "gcrpCan", geneProductSubset = "Swiss-Prot",
-                                          assigned_by = c("Uniprot","Ensembl"),
-                                          taxon = "9606", taxon_usage = "exact", evidence_usage = "descendants",
-                                          evidences_to_remove = "",
+                                          assigned_by = c("Uniprot","InterPro","BHF-UCL","Ensembl","GO_Central","GOC","MGI","ARUK-UCL","ComplexPortal",
+                                                          "ParkinsonsUK-UCL","HGNC-UCL"),
+                                          taxon = "9606", taxon_usage = "exact", 
+                                          evidences_to_remove = "",evidence_usage = "descendants",
                                           to_curate = F)
-GO_proteins_for_GO_childs <- GO_proteins_for_GO_childs4 %>% 
+# filter for unique proteins
+GO_proteins_for_extracell_NO_reactome_IEA <- GO_proteins_for_extracell_NO_reactome_IEA %>% 
   distinct()
 
-
-GO_proteins_for_GO_childs_recursive <- get_go_genes(go_id = c(GOs_childs_recursive$parent_id,
-                                                              GOs_childs_recursive$id), 
-                                          go_usage = "exact", proteome = "gcrpCan", assigned_by = c("Uniprot","InterPro","GO_Central","BHF-UCL"), 
-                                          geneProductSubset = "Swiss-Prot", 
-                                          taxon = "9606", 
-                                          taxon_usage = "exact")
-GO_proteins_for_GO_childs_recursive <- GO_proteins_for_GO_childs_recursive %>% 
+## Proteins with IEA
+GO_proteins_for_extracell_NO_reactome <- get_go_genes(go_id = c("GO:0005576"), go_usage = "exact",
+                                                      proteome = "gcrpCan", geneProductSubset = "Swiss-Prot",
+                                                      assigned_by = c("Uniprot","InterPro","BHF-UCL","Ensembl","GO_Central","GOC","MGI","ARUK-UCL","ComplexPortal",
+                                                                      "ParkinsonsUK-UCL","HGNC-UCL"),
+                                                      taxon = "9606", taxon_usage = "exact", 
+                                                      evidence_usage = "descendants",
+                                                      to_curate = F)
+# filter for unique proteins
+GO_proteins_for_extracell_NO_reactome <- GO_proteins_for_extracell_NO_reactome %>% 
   distinct()
-
-
-### Sankey plot for the passes
-## https://stackoverflow.com/questions/64146971/sankey-alluvial-diagram-with-percentage-and-partial-fill-in-r 
-## CODE FOR THE SANKEY PLOT
-## Remove some data to work better, this might be eliminated
-GOs_childs_recursive2 <- GOs_childs_recursive %>% 
-  subset(select = c(parent_name,
-                    name, recursive_pass))
-
-## Get the data of the trajectories that we will get to explain the extraction of paths
-GOs_childs_recursive_trajectories <- GOs_childs_recursive2 %>% 
-  group_by(name, parent_name) %>% 
-  slice(which.max(recursive_pass)) %>% 
-  ungroup() %>% 
-  filter(!name %in% parent_name) %>%
-  arrange((recursive_pass))
-
-## Initialize the trajectory list
-trajectory_list <- list()
-for (i in 1:length(rownames(GOs_childs_recursive_trajectories))){
-  trajectory_list[[i]] <- as.data.frame(GOs_childs_recursive_trajectories[i,])
-}
-
-
-
-
 
