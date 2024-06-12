@@ -135,6 +135,11 @@ get_go_genes <- function(go_id, go_usage = "exact",
     colnames(go_id_data) <- go_id_data[1, ]
     go_id_data <- go_id_data[-1, ]
     
+    if (nrow(go_id_data) >= 10000){
+      cat(paste0("Hey, this GO Term info might be truncated ",go_id[i],"\r"))
+      cat("\n")
+    } 
+    
     ## Append the dataframe into the list
     final_list[[i]] <- go_id_data
   }
