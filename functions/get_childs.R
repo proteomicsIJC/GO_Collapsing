@@ -153,7 +153,7 @@ get_childs <- function(go_id){
   final_dataframe <- merge(final_dataframe, ids_and_aspect_childs,
                            by.x = "id", by.y = "id")
   final_dataframe <- final_dataframe %>% 
-    select(parent_id, parent_name, aspect_parent,
-           id,name,relation,hasChildren,aspect)
+    subset(select = c(parent_id, parent_name, aspect_parent,
+                      id,name,relation,hasChildren,aspect))
   return(final_dataframe)
 }
