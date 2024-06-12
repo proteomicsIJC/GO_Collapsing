@@ -25,21 +25,16 @@ source("./functions/get_go_genes.R")
 ### Get the childs of GO:0005576 - (extracellular region)
 GOs_childs <- get_childs(go_id = c("GO:0005576")) 
 ### Get the childs recursively
+GOs_childs_recursive <- get_childs_recursive(childs_data = GOs_childs)
 ## Remove redundant requests where parents are already childs of another term in the search to get the 
 # best and cleaned search for genes !
-GOs_childs_recursive <- get_childs_recursive(childs_data = GOs_childs)
-
-# GOs_childs_recursive_check <- GOs_childs_recursive %>%
-#   # Group by all cols except recursive pass
-#   arrange(across(c(-recursive_pass)))
-# look for symbiont-containing vacuolar membrane network to do the check
-
 GOs_childs_recursive <- GOs_childs_recursive %>%
   # Group by all cols except recursive pass
   group_by(across(c(-recursive_pass))) %>%
   # If we have more than a path that is repeated, get the one w the biggest recursive pass
   dplyr::slice(which.max(recursive_pass)) %>%
   ungroup()
+
 # filter the childs
 GOs_childs_recursive <- GOs_childs_recursive %>% 
   # filter only cellular component
