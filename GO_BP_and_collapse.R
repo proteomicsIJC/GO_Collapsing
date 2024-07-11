@@ -73,7 +73,7 @@ BP_go1 <- enrichGO(gene = c1.go$SYMBOL,
 
 ## Filter by count
 BP_go1 <- gsfilter(BP_go1, by = "Count", min = 5)
-+
+
 ## Write the data
 openxlsx::write.xlsx(x = BP_go1@result, file = "./results/go_bp/go_bp1.xlsx")
 
