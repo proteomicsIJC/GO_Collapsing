@@ -35,7 +35,7 @@ source("./functions/minestrone.R")
 source("./functions/treemaping.R")
 
 ## Data
-raw_data <- read.table("./raw_data/protein_clusters_k6.tsv", sep = "\t", dec = ".", header = T)
+raw_data <- openxlsx::read.xlsx("./raw_data/example_data.xlsx", sheet = 1)
 
 #### Data manipulation
 ### Create new columns in case it is required
@@ -44,7 +44,7 @@ raw_data <- read.table("./raw_data/protein_clusters_k6.tsv", sep = "\t", dec = "
 # where each entry is realy a Gene.name and not a Gene.name followed by another like for
 # example dmrt1;cyp19a1
 raw_data <- raw_data %>%
-  group_by(Protein.Group) %>% 
+  group_by(Accession) %>% 
   mutate(Gene.names_1 = unlist(strsplit(Gene.names, split = "\\;"), use.names = F)[1]) %>% 
   ungroup() %>% 
   relocate(Gene.names_1, .after = Gene.names) %>% 
@@ -82,15 +82,15 @@ go_bp_plot <- ggplot(top_n(BP_go@result, n = 5, wt = -p.adjust),
   ylab("")+
   xlab("")+
   theme_bw()+
-  labs(fill='FDR') + 
   scale_fill_continuous(labels = scientific_format())+
-  theme(legend.text = element_text(size = 20, face = "bold"),
-        axis.ticks = element_line(colour = "black", size = 1),
-        panel.border = element_rect(colour = "black", size = 1, fill = NA),
-        axis.text = element_text(size = 23, face = "bold"),
+  labs(fill='FDR') + 
+  theme(legend.text = element_text(size = 10, face = "bold"),
+        legend.title = element_text(size = 12, face = "bold"),
+        axis.ticks = element_line(colour = "black", linewidth =  1),
+        panel.border = element_rect(colour = "black", linewidth = 1, fill = NA),
+        axis.text = element_text(size = 10, face = "bold"),
         legend.key.height = unit(1.8,"cm"),
-        legend.key.width = unit(1.8,"cm"),
-        legend.title = element_blank())
+        legend.key.width = unit(0.6,"cm"))
 
 pdf("./plots/GO_BP_non_collapsed.pdf", width = 16, height = 4.5, bg = NULL )
 go_bp_plot
@@ -109,28 +109,28 @@ collapsed_ontology <- collapseGO(functional_annot = BP_go@result,
                                  ontology_to_look = "BP")
 
 ## Work the collapsed data
-main_functions <- GO_BP@result[GO_BP@result %in% collapsed_ontology$mainPaths,]
+main_functions <- BP_go@result[BP_go@result$ID %in% collapsed_ontology$mainPaths,]
 
 ## Save the collapsed data
 openxlsx::write.xlsx(x = main_functions, file = "./results/GO_BP_collapsed.xlsx")
 
 ## Figure-wise for the collapsed data
-go1_collapsed <- ggplot(top_n(main_functions1, n = nrow(main_functions1), wt = -p.adjust), 
+go1_collapsed <- ggplot(top_n(main_functions, n = nrow(main_functions), wt = -p.adjust), 
                         aes(x=Count, y=reorder(Description,Count), fill=p.adjust))+
   geom_bar(stat = "identity", width = 0.5)+
-  ggtitle(paste0("GO:Biological Process\nCollapsed"))+
+  ggtitle(paste0("GO:Biological Process Collapsed"))+
   ylab("")+
   xlab("")+
   theme_bw()+
-  labs(fill='FDR') + 
   scale_fill_continuous(labels = scientific_format())+
-  theme(legend.text = element_text(size = 20, face = "bold"),
-        axis.ticks = element_line(colour = "black", size = 1),
-        panel.border = element_rect(colour = "black", size = 1, fill = NA),
-        axis.text = element_text(size = 15, face = "bold"),
+  labs(fill='FDR') + 
+  theme(legend.text = element_text(size = 10, face = "bold"),
+        legend.title = element_text(size = 12, face = "bold"),
+        axis.ticks = element_line(colour = "black", linewidth =  1),
+        panel.border = element_rect(colour = "black", linewidth = 1, fill = NA),
+        axis.text = element_text(size = 10, face = "bold"),
         legend.key.height = unit(1.8,"cm"),
-        legend.key.width = unit(1.8,"cm"),
-        legend.title = element_blank())
+        legend.key.width = unit(0.6,"cm"))
 
 pdf("./plots/GO_BP_collapsed.pdf", width = 16, height = 4.5, bg = NULL )
 go1_collapsed
@@ -150,8 +150,8 @@ soup <- soup %>%
   mutate(size = ontology_table$Count[match(child,
                                            ontology_table$Description)])
 ## Plot
-pdf("./plots/tree1.pdf", width = 10, height = 10, bg = NULL )
-treemaping(soup = soup1, graph_title = "GO:BP collapse")
+pdf("./plots/Treemap_GO_BP.pdf", width = 10, height = 10, bg = NULL )
+treemaping(soup = soup, graph_title = "GO:BP collapse")
 dev.off()
 
 ## Save the treemap data
@@ -161,7 +161,7 @@ openxlsx::write.xlsx("./results/GO_BP_collapsing_process.xlsx", x = soup)
 ontology_table <- ontology_table %>% 
   mutate(collapsed_to = soup$parent[match(Description,
                                           soup$child)])
-openxlsx::write.xlsx(x = BP_go@result, file = "./results/GO_BP_all_data.xlsx")
+openxlsx::write.xlsx(x = ontology_table, file = "./results/GO_BP_all_data.xlsx")
 
 ######## The idea of having so much code that writes that much of excel files is that simply you create
 ######## save the excels you want but at first save all that things that you may need and then, if you do
