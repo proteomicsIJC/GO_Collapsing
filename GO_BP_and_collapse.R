@@ -2,7 +2,7 @@
 ### GO:BP annotation and collapse ###
 #####################################
 
-### Load libraries and data
+#### Load libraries and data
 ## Libraries
 library(rstudioapi)
 setwd(dirname(getActiveDocumentContext()$path))
@@ -30,7 +30,6 @@ library(gridExtra)
 library(cowplot)
 
 ## Functions
-source("../functions/general/first_accession.R")
 source("./functions/collapseGO.R")
 source("./functions/minestrone.R")
 source("./functions/treemaping.R")
@@ -38,58 +37,53 @@ source("./functions/treemaping.R")
 ## Data
 raw_data <- read.table("./raw_data/protein_clusters_k6.tsv", sep = "\t", dec = ".", header = T)
 
-## Clean genes
-g_acs_1 <- strsplit(raw_data$protein, "\\;")
-good_names_1 <- first_accession(g_acs_1)
-raw_data$Accession_1 <- good_names_1
+#### Data manipulation
+### Create new columns in case it is required
+# The names of the columns we mutate/merge or do not merge may change !
+# the final idea of this manipulation is just to generate a vector of Gene.names (SYMBOLS)
+# where each entry is realy a Gene.name and not a Gene.name followed by another like for
+# example dmrt1;cyp19a1
 raw_data <- raw_data %>%
-  relocate(Accession_1, .after = protein)
+  group_by(Protein.Group) %>% 
+  mutate(Gene.names_1 = unlist(strsplit(Gene.names, split = "\\;"), use.names = F)[1]) %>% 
+  ungroup() %>% 
+  relocate(Gene.names_1, .after = Gene.names) %>% 
+  filter(!duplicated(Gene.names_1)) %>% 
+  filter(!is.na(Gene.names_1))
 
-## Clusters
-# here, define a vector of UNIPROT IDs
-cluster1 <- raw_data$Accession_1[raw_data$cluster == "group1"]
-
-### GO:BP
-## Universe
-organism = "org.Hs.eg.db"
-
+#### Perform the enrichment analysis
+### Initialize the analysis 
+## Get the Background
+# This is an example where the whole proteome is used as background, this may not
+# be the best parctice but it gives us a base for the analysis
 backgGenes <- keys(org.Hs.eg.db) # EntrezID  
 backgGenes <- AnnotationDbi::select(org.Hs.eg.db, keys = backgGenes, columns = "UNIPROT") # Converts entrezID to GeneSymbol
 backgGenes <- backgGenes$UNIPROT
 backgGenes_kk <- AnnotationDbi::select(org.Hs.eg.db, keys = backgGenes, columns = "SYMBOL", keytype = "UNIPROT") # Converts entrezID to GeneSymbol
 backgGenes_kk <- backgGenes_kk$SYMBOL
 
-## Annotation of the genes
-c1.go <- AnnotationDbi::select(org.Hs.eg.db, keys = cluster1, columns = "SYMBOL", keytype = "UNIPROT")
-
-# Do the analysis
-BP_go1 <- enrichGO(gene = c1.go$SYMBOL,
-                   universe = backgGenes_kk,
-                   OrgDb = "org.Hs.eg.db",
-                   ont = "BP",
-                   pvalueCutoff = 0.05,
-                   qvalueCutoff = 0.1, minGSSize = 5, keyType = "SYMBOL")
-
+### Do the analysis
+BP_go <- enrichGO(gene = raw_data$Gene.names_1, universe = backgGenes_kk,
+                  OrgDb = "org.Hs.eg.db", ont = "BP",
+                  pvalueCutoff = 0.05, qvalueCutoff = 0.1, minGSSize = 5,
+                  keyType = "SYMBOL")
 
 ## Filter by count
-BP_go1 <- gsfilter(BP_go1, by = "Count", min = 5)
+BP_go <- gsfilter(BP_go, by = "Count", min = 5)
 
 ## Write the data
-openxlsx::write.xlsx(x = BP_go1@result, file = "./results/go_bp/go_bp1.xlsx")
+openxlsx::write.xlsx(x = BP_go@result, file = "./results/GO_BP_non_collapsed.xlsx")
 
 ## Plot results
-ggplot(top_n(BP_go1@result, n = 5, wt = -p.adjust), aes(x=Count, y=reorder(Description,Count), fill=p.adjust))+
+go_bp_plot <- ggplot(top_n(BP_go@result, n = 5, wt = -p.adjust), 
+              aes(x=Count, y=reorder(Description,Count), fill=p.adjust))+
   geom_bar(stat = "identity", width = 0.5)+
-  ggtitle(paste0("Cluster 1, GO:BP"))+
-  ylab("")+xlab("")+theme_bw()+ labs(fill='FDR') +scale_fill_continuous(labels = scientific_format())+
-  theme(axis.text = element_text(size = 15))
-
-
-## Figure-wise
-go1 <- ggplot(top_n(BP_go1@result, n = 5, wt = -p.adjust), aes(x=Count, y=reorder(Description,Count), fill=p.adjust))+
-  geom_bar(stat = "identity", width = 0.5)+
-  ggtitle(paste0("Cluster 1"))+
-  ylab("")+xlab("")+theme_bw()+ labs(fill='FDR') +scale_fill_continuous(labels = scientific_format())+
+  ggtitle(paste0("GO:Biological Process"))+
+  ylab("")+
+  xlab("")+
+  theme_bw()+
+  labs(fill='FDR') + 
+  scale_fill_continuous(labels = scientific_format())+
   theme(legend.text = element_text(size = 20, face = "bold"),
         axis.ticks = element_line(colour = "black", size = 1),
         panel.border = element_rect(colour = "black", size = 1, fill = NA),
@@ -98,46 +92,38 @@ go1 <- ggplot(top_n(BP_go1@result, n = 5, wt = -p.adjust), aes(x=Count, y=reorde
         legend.key.width = unit(1.8,"cm"),
         legend.title = element_blank())
 
-pdf("./plots/go_bp/go1.pdf", width = 16, height = 4.5, bg = NULL )
-go1
+pdf("./plots/GO_BP_non_collapsed.pdf", width = 16, height = 4.5, bg = NULL )
+go_bp_plot
 dev.off()
 
-### GO:BP collapse
-## Get the info
-# Tables
-gobp1 <- BP_go1@result
+#### Gene Ontology collapse
+ontology_table <- BP_go@result
+ontology_table <- ontology_table %>% 
+  filter(p.adjust < 0.05) %>%
+  arrange(pvalue) 
 
-# filter the data
-gobp1 <- gobp1 %>% 
-  filter(p.adjust < 0.05)
-
-# Get the genes
-genes1 <- c1.go$SYMBOL
-
-# Get the paths
-pathways1 <- BP_go1@geneSets
-
-## Collapsing
-collapsed1 <- collapseGO(functional_annot = gobp1, pathways = pathways1,genes = genes1,  mingsize = 5, ontology_to_look = "BP")
+collapsed_ontology <- collapseGO(functional_annot = BP_go@result,
+                                 pathways = BP_go@geneSets,
+                                 genes = raw_data$Gene.names_1,
+                                 mingsize = 5, ## The same as in the filtering performed by gsfilter
+                                 ontology_to_look = "BP")
 
 ## Work the collapsed data
-main_functions1 <- gobp1[gobp1$ID %in% collapsed1$mainPaths,]
+main_functions <- GO_BP@result[GO_BP@result %in% collapsed_ontology$mainPaths,]
 
 ## Save the collapsed data
-openxlsx::write.xlsx(x = main_functions1, file = "./results/go_bp_collasped/main_paths1.xlsx")
-
-## Do the plots again with the collapsed data
-ggplot(top_n(main_functions1, n = 5, wt = -p.adjust), aes(x=Count, y=reorder(Description,Count), fill=p.adjust))+
-  geom_bar(stat = "identity", width = 0.5)+
-  ggtitle(paste0("Cluster 1, GO:BP"))+
-  ylab("")+xlab("")+theme_bw()+ labs(fill='FDR') +scale_fill_continuous(labels = scientific_format())+
-  theme(axis.text = element_text(size = 15))
+openxlsx::write.xlsx(x = main_functions, file = "./results/GO_BP_collapsed.xlsx")
 
 ## Figure-wise for the collapsed data
-go1_collapsed <- ggplot(top_n(main_functions1, n = nrow(main_functions1), wt = -p.adjust), aes(x=Count, y=reorder(Description,Count), fill=p.adjust))+
+go1_collapsed <- ggplot(top_n(main_functions1, n = nrow(main_functions1), wt = -p.adjust), 
+                        aes(x=Count, y=reorder(Description,Count), fill=p.adjust))+
   geom_bar(stat = "identity", width = 0.5)+
-  ggtitle(paste0("Cluster 1"))+
-  ylab("")+xlab("")+theme_bw()+ labs(fill='FDR') +scale_fill_continuous(labels = scientific_format())+
+  ggtitle(paste0("GO:Biological Process\nCollapsed"))+
+  ylab("")+
+  xlab("")+
+  theme_bw()+
+  labs(fill='FDR') + 
+  scale_fill_continuous(labels = scientific_format())+
   theme(legend.text = element_text(size = 20, face = "bold"),
         axis.ticks = element_line(colour = "black", size = 1),
         panel.border = element_rect(colour = "black", size = 1, fill = NA),
@@ -146,35 +132,36 @@ go1_collapsed <- ggplot(top_n(main_functions1, n = nrow(main_functions1), wt = -
         legend.key.width = unit(1.8,"cm"),
         legend.title = element_blank())
 
-pdf("./plots/go_bp_collapsed/go1_collapsed.pdf", width = 16, height = 4.5, bg = NULL )
+pdf("./plots/GO_BP_collapsed.pdf", width = 16, height = 4.5, bg = NULL )
 go1_collapsed
 dev.off()
 
 ### GO:BP collapsing process
-# Collapse to data_frame
-soup1 <- minestrone(collapsed_list = collapsed1, original_data = gobp1)
+# Collapse named list to data_frame
+soup <- minestrone(collapsed_list = collapsed_ontology, original_data = ontology_table)
 
-## Do the treemap
+## Do a treemap for the collapsing process
 # Do the trick and add a size column to the soup dataframe
-soup1$size <- 1
+soup$size <- 1
 
 # You can also make size proportional to the Count of each functional term
-x <- soup1$child
-soup1$size <- gobp1$Count[match(x, gobp1$Description)]
-
-# Plot
+soup <- soup %>% 
+  group_by(child) %>% 
+  mutate(size = ontology_table$Count[match(child,
+                                           ontology_table$Description)])
+## Plot
 pdf("./plots/tree1.pdf", width = 10, height = 10, bg = NULL )
-treemaping(soup = soup1, graph_title = "GO:BP collapse cluster 1")
+treemaping(soup = soup1, graph_title = "GO:BP collapse")
 dev.off()
 
-### Save results table
 ## Save the treemap data
-openxlsx::write.xlsx("./results/go_bp_collasped/tree1.xlsx", x = soup1)
+openxlsx::write.xlsx("./results/GO_BP_collapsing_process.xlsx", x = soup)
 
-## Save the gobp data
-openxlsx::write.xlsx("./results/go_bp/go_bp1.xlsx", x = gobp1)
-
-
+###### ADD THE COLLAPSED TO COLUMN !!!!
+# ## Save the gobp data
+# openxlsx::write.xlsx("./results/go_bp/go_bp1.xlsx", x = gobp1)
+ontology_table <- ontology_table %>% 
+  mutate(collapsed_to = "")
 
 
 
