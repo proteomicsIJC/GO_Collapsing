@@ -157,13 +157,15 @@ dev.off()
 ## Save the treemap data
 openxlsx::write.xlsx("./results/GO_BP_collapsing_process.xlsx", x = soup)
 
-###### ADD THE COLLAPSED TO COLUMN !!!!
-# ## Save the gobp data
-# openxlsx::write.xlsx("./results/go_bp/go_bp1.xlsx", x = gobp1)
+## Final Save of the gobp data
 ontology_table <- ontology_table %>% 
-  mutate(collapsed_to = "")
+  mutate(collapsed_to = soup$parent[match(Description,
+                                          soup$child)])
+openxlsx::write.xlsx(x = BP_go@result, file = "./results/GO_BP_all_data.xlsx")
 
-
+######## The idea of having so much code that writes that much of excel files is that simply you create
+######## save the excels you want but at first save all that things that you may need and then, if you do
+######## do not need it or find it redudant (as it may be) remove it.
 
 
 
