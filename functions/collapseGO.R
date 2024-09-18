@@ -12,16 +12,26 @@
 ## max_pval_to_collapse = max pvalue to consider when collapsing
 
 collapseGO <- function(functional_annot, pathways, genes, mingsize, ontology_to_look,
-                       max_pval_to_collapse = 0.05){
+                       max_pval_to_collapse = 0.05, organism = "org.Hs.eg.db"){
   ## filter enrichment result
   functional_annot <- functional_annot %>% 
     dplyr::filter(p.adjust < 0.05) %>%
     dplyr::arrange(pvalue) 
   
+  ## Correct the species name in case it is needed
+  if (organism %in% c("human","Human","Homo Sapiens","Homo Sapiens",
+                      "HUMAN","HOMO SAPIENS")) {
+    organism <- "org.Hs.eg.db"
+  } else if (organism %in% c("mouse", "Mouse", "Mus musculus", "Mus Musculus",
+                             "MOUSE","MUS MUSCULUS")) {
+    organism <- "org.Mm.eg.db"
+  }
+  
+  ## If no rows do not do nothing !!
   if (nrow(functional_annot) == 0){
     stop("NO Terms to collapse")
   } else {
-  
+    
   ## set the universe
   universe <- genes
   
@@ -50,7 +60,7 @@ collapseGO <- function(functional_annot, pathways, genes, mingsize, ontology_to_
     ## Our universe (u2)
     u2 <- pathways[[p]]
     gobp_u2 <- enrichGO(gene = u2, universe = genes,
-                        OrgDb = "org.Hs.eg.db", ont = ontology_to_look, keyType = "SYMBOL",
+                        OrgDb = organism, ont = ontology_to_look, keyType = "SYMBOL",
                         pvalueCutoff = 0.05, qvalueCutoff = 0.01, minGSSize = mingsize)
     gobp_u2 <- gobp_u2@result
     
