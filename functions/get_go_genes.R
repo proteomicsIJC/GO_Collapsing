@@ -17,13 +17,24 @@
 
 get_go_genes <- function(go_id, go_usage = "exact", 
                       proteome, 
-                      assigned_by = "UniProt",
+                      assigned_by = NULL,
                       geneProductSubset = "Swiss-Prot",
                       taxon, taxon_usage = "exact",
                       evidences_to_remove =  c("ECO:0000245","ECO:0000307","ECO:0000501"), evidence_usage = "exact",
                       to_curate = F){
   ## GO_list
   final_list <- list()
+  
+  ### Asigned by
+  centers <- c("ARUK-UCL","ASAP","AgBase","Alzheimers_University_of_Toronto","AspGD",
+               "BHF-UCL","CACAO","CAFA","CGD","CollecTF","ComplexPortal","DisProt","EcoCyc","EcoliWiki","Ensembl","EnsemblFungi","EnsemblMetazoa","EnsemblPlants",
+               "EnsemblProtists","GOC","GO_Central","GR","GeneDB","HGNC","HGNC-UCL","HPA","IntAct","InterPro","JaponicusDB","LIFEdb","MGI","NTNU_SB","PHI-base",
+               "ParkinsonsUK-UCL","PomBase","PseudoCAP","RGD","RHEA","RNAcentral","Reactome","SGD","SYSCILIA_CCNET","SynGO",
+               "SynGO-UCL","TAIR","UniProt","WB","YuBioLab","ZFIN","dictyBase","iBB")
+  
+  if (is.null(assigned_by)){
+    assigned_by <- centers
+  }
   
   ### Evidences
   evidences <- c("Inferred from Experiment (EXP)	 ECO:0000269",
@@ -105,7 +116,6 @@ get_go_genes <- function(go_id, go_usage = "exact",
     ### Taxon Usage
     unique_taxon_usage <- taxon_usage
     unique_taxon_usage <- paste0("taxonUsagee=",unique_taxon_usage)
-    
     
     ### Evidences
     evidences <- gsub(pattern = "\\:", replacement = "%3A", x = evidences)

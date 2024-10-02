@@ -1,9 +1,8 @@
-
 ################## 
 ## get_go_terms ##
 ##################
 
-## IDs = character vector of go_ids to get genes from.
+## uniprot_id = character vector of uniprot_ids to get genes from.
 ## proteome = character vector of proteome reference to use: none, 
 # gcrpCan (Gene Centric Reference Proteome Canonical),
 # gcrpIso (Gene Centric Reference Proteome IsoForm).
@@ -15,21 +14,25 @@
 ## evidence usage = exact or descendant
 ## to_curate = T or F. If T look only for "ECO:0000245","ECO:0000307","ECO:0000501" and you'll be able to remove the "bad" genes from annotation
 
-centers <- c("ARUK-UCL","ASAP","AgBase","Alzheimers_University_of_Toronto","AspGD",
-             "BHF-UCL","CACAO","CAFA","CGD","CollecTF","ComplexPortal","DisProt","EcoCyc","EcoliWiki","Ensembl","EnsemblFungi","EnsemblMetazoa","EnsemblPlants",
-             "EnsemblProtists","GOC","GO_Central","GR","GeneDB","HGNC","HGNC-UCL","HPA","IntAct","InterPro","JaponicusDB","LIFEdb","MGI","NTNU_SB","PHI-base",
-             "ParkinsonsUK-UCL","PomBase","PseudoCAP","RGD","RHEA","RNAcentral","Reactome","SGD","SYSCILIA_CCNET","SynGO",
-             "SynGO-UCL","TAIR","UniProt","WB","YuBioLab","ZFIN","dictyBase","iBB")
-
-
-get_go_genes <- function(IDs, proteome, 
-                         assigned_by = centers,
+get_go_genes <- function(uniprot_id, proteome, 
+                         assigned_by = NULL,
                          geneProductSubset = "Swiss-Prot",
                          taxon, taxon_usage = "exact",
                          evidences_to_remove =  c("ECO:0000245","ECO:0000307","ECO:0000501"), evidence_usage = "exact",
                          to_curate = F){
   ## GO_list
   final_list <- list()
+  
+  ### Asigned by
+  centers <- c("ARUK-UCL","ASAP","AgBase","Alzheimers_University_of_Toronto","AspGD",
+               "BHF-UCL","CACAO","CAFA","CGD","CollecTF","ComplexPortal","DisProt","EcoCyc","EcoliWiki","Ensembl","EnsemblFungi","EnsemblMetazoa","EnsemblPlants",
+               "EnsemblProtists","GOC","GO_Central","GR","GeneDB","HGNC","HGNC-UCL","HPA","IntAct","InterPro","JaponicusDB","LIFEdb","MGI","NTNU_SB","PHI-base",
+               "ParkinsonsUK-UCL","PomBase","PseudoCAP","RGD","RHEA","RNAcentral","Reactome","SGD","SYSCILIA_CCNET","SynGO",
+               "SynGO-UCL","TAIR","UniProt","WB","YuBioLab","ZFIN","dictyBase","iBB")
+  
+  if (is.null(assigned_by)){
+    assigned_by <- centers
+  }
   
   ### Evidences
   evidences <- c("Inferred from Experiment (EXP)	 ECO:0000269",
@@ -63,8 +66,8 @@ get_go_genes <- function(IDs, proteome,
   evidences_data <- data.frame(data.frame(do.call(rbind, strsplit(evidences, "\t")), stringsAsFactors = FALSE))
   names(evidences_data) <- c("Description", "Code")
   
-  evidences_data <- evidences_data %>% 
-    filter(!Code %in% evidences_to_remove, .preserve = F)
+  evidences_data <- evidences_data |> 
+    dplyr::filter(!Code %in% evidences_to_remove, .preserve = F)
   
   evidences <- evidences_data$Code
   
@@ -72,30 +75,28 @@ get_go_genes <- function(IDs, proteome,
     evidences <- c("ECO:0000245","ECO:0000307","ECO:0000501")
   }
   
-  ##### GET THE GENES !
+  ##### GET THE TERMS !
   base_url <- "https://www.ebi.ac.uk/QuickGO/services/annotation/downloadSearch?"
   result_list <- list()
-  for (i in 1:length(go_id)){
+  for (i in 1:length(uniprot_id)){
     ### Proteome
     unique_proteomes <- paste(proteome, collapse = "%2C")
     unique_proteomes <- paste0("proteome=",unique_proteomes)
+    ###Include fields
+    unique_include_fields <- "includeFields=goName"
     ### Assigned by
     unique_assigned_by <- paste(assigned_by, collapse = "%2C")
     unique_assigned_by <- paste0("assignedBy=",unique_assigned_by)
-    
     ### Select fields
-    unique_select_fields <-"selectedFields=geneProductId&selectedFields=symbol&selectedFields=qualifier&selectedFields=goId&selectedFields=goAspect&selectedFields=evidenceCode&selectedFields=goEvidence&selectedFields=taxonId&selectedFields=assignedBy&selectedFields=synonyms&selectedFields=name&selectedFields=type&selectedFields=goName"
-    
-    ###Include fields
-    unique_include_fields <- "includeFields=goName"
-    
+    unique_select_fields <-"selectedFields=geneProductId&selectedFields=symbol&selectedFields=qualifier&selectedFields=goId&selectedFields=goAspect&selectedFields=goName&selectedFields=evidenceCode&selectedFields=goEvidence&selectedFields=taxonId&selectedFields=assignedBy&selectedFields=synonyms&selectedFields=name&selectedFields=type"
+    ### Gene product
+    unique_uniprotid <- uniprot_id[i]
+    unique_uniprotid <- paste0("geneProductId=",unique_uniprotid)
     ### Gene product type
     unique_geneProductType <- "geneProductType=protein"
-    
-    ### Gene subset type
+    ### Gene subset
     unique_geneProductSubset <- paste(geneProductSubset, collapse = "%2C")
     unique_geneProductSubset <- paste0("geneProductSubset=",unique_geneProductSubset)
-    
     ### Taxon
     unique_taxon <- paste(taxon, collapse = "%2C")
     unique_taxon <- paste0("taxonId=",unique_taxon)
@@ -103,7 +104,6 @@ get_go_genes <- function(IDs, proteome,
     ### Taxon Usage
     unique_taxon_usage <- taxon_usage
     unique_taxon_usage <- paste0("taxonUsagee=",unique_taxon_usage)
-    
     
     ### Evidences
     evidences <- gsub(pattern = "\\:", replacement = "%3A", x = evidences)
@@ -114,15 +114,13 @@ get_go_genes <- function(IDs, proteome,
     unique_evidence_usage <- evidence_usage
     unique_evidence_usage <- paste0("evidenceCodeUsage=",unique_evidence_usage)
     
-    ## Generate the URL
-    variable_part <- paste(unique_proteomes,unique_assigned_by,unique_select_fields,unique_geneProductType,
-                           unique_geneProductSubset,
-                           unique_taxon,unique_taxon_usage,
-                           unique_evidence,unique_evidence_usage,unique_include_fields,sep = "&")
     
+    ### Generate the URL
+    variable_part <- paste(unique_proteomes,unique_include_fields, unique_assigned_by, unique_select_fields, unique_uniprotid,
+                           unique_geneProductType, unique_geneProductSubset,unique_evidence,unique_evidence_usage, unique_taxon, unique_taxon_usage, sep = "&")
     url <- paste(base_url,variable_part,sep = "")
     
-    ## Do the API petition
+    ### Do the API petition
     response <- httr::GET(url = url, accept("text/tsv"))
     stop_for_status(response)
     content <- httr::content(response, as = "text")
@@ -137,36 +135,15 @@ get_go_genes <- function(IDs, proteome,
     if (nrow(go_id_data) >= 10000){
       cat(paste0("Hey, this GO Term info might be truncated ",go_id[i],"\r"))
       cat("\n")
-    } 
-    
-    ## Append the dataframe into the list
+    }
+    ## Append the list
     final_list[[i]] <- go_id_data
   }
   final_data_frame <- as.data.frame(do.call(rbind, final_list))
   return(final_data_frame)
 }
 
-
-
-library(httr)
-library(jsonlite)
-library(xml2)
-
-requestURL <- "https://www.ebi.ac.uk/QuickGO/services/annotation/downloadSearch?proteome=gcrpCan&includeFields=goName&selectedFields=geneProductId&selectedFields=symbol&selectedFields=qualifier&selectedFields=goId&selectedFields=goAspect&selectedFields=goName&selectedFields=evidenceCode&selectedFields=goEvidence&selectedFields=taxonId&selectedFields=assignedBy&selectedFields=synonyms&selectedFields=name&selectedFields=type&geneProductId=A0A075B6J1&geneProductType=protein&geneProductSubset=Swiss-Prot&taxonId=9606&taxonUsage=exact"
-r <- GET(requestURL, accept("text/tsv"))
-
-stop_for_status(r)
-
-content <- content(r,as = "text")
-
-lines <- strsplit(content,"\n")[[1]]
-data <- lapply(lines, function(line) unlist(strsplit(line, "\t")))
-go_id_data <- as.data.frame(do.call(rbind, data))
-colnames(go_id_data) <- go_id_data[1, ]
-go_id_data <- go_id_data[-1, ]
-
-
-head(content)
-
-
-
+# QuickGO_call <- get_go_genes(uniprot_id = "A0A075B6J1", proteome = "gcrpCan",
+#                              geneProductSubset = "Swiss-Prot", assigned_by = "Ensembl",
+#                              taxon = "9606", taxon_usage = "exact", evidence_usage = "exact")
+ 
