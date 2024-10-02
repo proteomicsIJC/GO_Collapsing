@@ -14,7 +14,7 @@
 ## evidence usage = exact or descendant
 ## to_curate = T or F. If T look only for "ECO:0000245","ECO:0000307","ECO:0000501" and you'll be able to remove the "bad" genes from annotation
 
-get_go_genes <- function(uniprot_id, proteome, 
+get_go_terms <- function(uniprot_id, proteome, 
                          assigned_by = NULL,
                          geneProductSubset = "Swiss-Prot",
                          taxon, taxon_usage = "exact",
@@ -138,6 +138,7 @@ get_go_genes <- function(uniprot_id, proteome,
     }
     ## Append the list
     final_list[[i]] <- go_id_data
+    cat(paste0(i,"\r"))
   }
   final_data_frame <- as.data.frame(do.call(rbind, final_list))
   return(final_data_frame)
