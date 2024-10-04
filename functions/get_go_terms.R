@@ -6,7 +6,7 @@
 ## proteome = character vector of proteome reference to use: none, 
 # gcrpCan (Gene Centric Reference Proteome Canonical),
 # gcrpIso (Gene Centric Reference Proteome IsoForm).
-## assigned_by = character vector of labs that have assigned the gene/protein to the path.
+## assigned_by = character vector of labs that have assigned the gene/protein to the path if NULL all labs will be into the analysis.
 ## geneProductSubset = character vector of the Uniprot version to use reviewed (Swiss-Prot) and/or unreviewed (TrEMBL).
 ## taxon = character vector of taxon ids to retrive information from.
 ## taxon_usage = character vector for the taxon usage, it can be exact or descendants
