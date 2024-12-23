@@ -29,7 +29,7 @@ get_interpro_pfam_data <- function(protein_id,taxon){
     url <- paste(base_url,variable_part,base_url_extra,sep = "")
     
     ## Do the API petition
-    response <<- httr::GET(url = url, accept("application/json"))
+    response <- httr::GET(url = url, accept("application/json"))
     stop_for_status(response)
     content <- httr::content(response, as = "text", encoding = "UTF-8")
     
@@ -76,7 +76,7 @@ get_interpro_pfam_data <- function(protein_id,taxon){
     final_list <- as.data.frame(do.call(rbind, result_list))
   }
   else if (length(result_list) == 0) {
-    final_list <- "Not match found !"
+    final_list <- "No match found !"
   }
   
   # final_data_frame <- as.data.frame(do.call(rbind, final_list))
@@ -85,9 +85,9 @@ get_interpro_pfam_data <- function(protein_id,taxon){
 }
 
 
-a <- get_interpro_pfam_data(protein_id = c("P68871"), taxon = "9606")
-b <- get_interpro_pfam_data(protein_id = c("kjgsgalglj"), taxon = "9606")
-c <- get_interpro_pfam_data(protein_id = c("P81177","Q7A656"), taxon = "1280")
+a_response <- get_interpro_pfam_data(protein_id = c("P68871"), taxon = "9606")
+b_response <- get_interpro_pfam_data(protein_id = c("kjgsgalglj"), taxon = "9606")
+c_response <- get_interpro_pfam_data(protein_id = c("P81177","Q7A656"), taxon = "1280")
 
 ################################## RESPONSE FOR 
 # Load required package

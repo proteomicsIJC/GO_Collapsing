@@ -29,11 +29,6 @@ library(grid)
 library(gridExtra)
 library(cowplot)
 
-## Functions
-source("./functions/collapseGO.R")
-source("./functions/minestrone.R")
-source("./functions/treemaping.R")
-
 ## Data
 raw_data <- openxlsx::read.xlsx("./raw_data/example_data.xlsx", sheet = 1)
 
