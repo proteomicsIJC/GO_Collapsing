@@ -9,3 +9,5 @@ The function outputs a two-element list:
 - **parent_paths**: The original list of pathways with an indication of the pathways they have been collapsed into.
 
 Additionally, this repository includes the `minestrone` and `treemapping` functions, which can be used to generate a treemap plot for visualization.
+
+This approach idea has been originated from the `fgsea` package function `collapsePathways`.
