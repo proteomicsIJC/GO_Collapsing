@@ -1,4 +1,5 @@
 # Functional Annotation and Functional Annotation Collapse
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14548509.svg)](https://doi.org/10.5281/zenodo.14548509)
 
 This script is designed to summarize Gene Ontology (GO) enrichment results. After performing a Functional Annotation Enrichment Analysis or Over-Representation Analysis (ORA), the results can be collapsed to generate a summarized list of over-represented pathways in a given set of genes.
 
@@ -11,3 +12,5 @@ The function outputs a two-element list:
 Additionally, this repository includes the `minestrone` and `treemapping` functions, which can be used to generate a treemap plot for visualization.
 
 This approach idea has been originated from the `fgsea` package function `collapsePathways`.
+
+
