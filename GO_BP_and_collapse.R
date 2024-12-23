@@ -157,16 +157,3 @@ ontology_table <- ontology_table %>%
   mutate(collapsed_to = soup$parent[match(Description,
                                           soup$child)])
 openxlsx::write.xlsx(x = ontology_table, file = "./results/GO_BP_all_data.xlsx")
-
-######## The idea of having so much code that writes that much of excel files is that simply you create
-######## save the excels you want but at first save all that things that you may need and then, if you do
-######## do not need it or find it redudant (as it may be) remove it.
-
-
-
-
-
-
-
-
-
